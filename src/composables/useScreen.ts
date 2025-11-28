@@ -116,6 +116,28 @@ export function useScreen() {
       selectedNodeId.value = null;
   };
 
+  const navigateToPage = (pageId: string) => {
+      if (pages.value.find(p => p.id === pageId)) {
+          activePageId.value = pageId;
+      }
+  };
+
+  const nextPage = () => {
+      const currentIndex = pages.value.findIndex(p => p.id === activePageId.value);
+      if (currentIndex !== -1 && currentIndex < pages.value.length - 1) {
+          const next = pages.value[currentIndex + 1];
+          if (next) activePageId.value = next.id;
+      }
+  };
+
+  const prevPage = () => {
+      const currentIndex = pages.value.findIndex(p => p.id === activePageId.value);
+      if (currentIndex > 0) {
+          const prev = pages.value[currentIndex - 1];
+          if (prev) activePageId.value = prev.id;
+      }
+  };
+
   const exportJson = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pages.value, null, 2));
     const downloadAnchorNode = document.createElement('a');
@@ -261,6 +283,9 @@ export function useScreen() {
     addPage,
     deletePage,
     updatePage,
-    clearScreen
+    clearScreen,
+    navigateToPage,
+    nextPage,
+    prevPage
   };
 }

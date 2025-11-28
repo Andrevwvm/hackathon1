@@ -10,13 +10,24 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['select']);
-const { isPreview, updateNodeProps, deleteNode, duplicateNode, handleSmartDrop } = useScreen();
+const { isPreview, updateNodeProps, deleteNode, duplicateNode, handleSmartDrop, nextPage, prevPage } = useScreen();
 
 const isContainer = computed(() => {
     return ['section', 'row', 'column', 'card', 'tabs', 'accordion'].includes(props.node.type);
 });
 
 const isSelected = computed(() => props.node.id === props.selectedId);
+
+const onButtonClick = () => {
+    if (!isPreview.value) return;
+    
+    const label = props.node.props.label?.toLowerCase() || '';
+    if (['next', 'continue', 'submit'].includes(label)) {
+        nextPage();
+    } else if (['back', 'previous', 'cancel'].includes(label)) {
+        prevPage();
+    }
+};
 
 const onChange = (evt: any) => {
     if (evt.added && props.node.children) {
@@ -128,6 +139,7 @@ const innerStyle = computed(() => ({
     <div v-if="!isContainer" class="p-2">
         <template v-if="node.type === 'button'">
             <button 
+                @click="onButtonClick"
                 class="glass-button px-4 py-2 font-medium transition-all"
                 :class="{
                     'bg-blue-600 text-white hover:bg-blue-700': !node.props.variant || node.props.variant === 'primary',
@@ -146,24 +158,85 @@ const innerStyle = computed(() => ({
             <p class="text-gray-600 dark:text-gray-300" :style="innerStyle">{{ node.props.text }}</p>
         </template>
         <template v-else-if="node.type === 'textInput'">
-            <input :type="node.props.inputType || 'text'" :placeholder="node.props.placeholder" class="glass-input w-full p-2" :style="innerStyle" />
+            <input 
+                :type="node.props.inputType || 'text'" 
+                :placeholder="node.props.placeholder" 
+                class="glass-input w-full p-2" 
+                :style="innerStyle" 
+                v-model="node.props.value"
+            />
+        </template>
+        <template v-else-if="node.type === 'numberInput'">
+            <input 
+                type="number" 
+                :placeholder="node.props.placeholder" 
+                class="glass-input w-full p-2" 
+                :style="innerStyle" 
+                v-model.number="node.props.value"
+            />
+        </template>
+        <template v-else-if="node.type === 'passwordInput'">
+            <input 
+                type="password" 
+                :placeholder="node.props.placeholder" 
+                class="glass-input w-full p-2" 
+                :style="innerStyle" 
+                v-model="node.props.value"
+            />
         </template>
         <template v-else-if="node.type === 'textarea'">
-            <textarea :placeholder="node.props.placeholder" class="glass-input w-full p-2" :style="innerStyle"></textarea>
+            <textarea 
+                :placeholder="node.props.placeholder" 
+                class="glass-input w-full p-2" 
+                :style="innerStyle" 
+                v-model="node.props.value"
+            ></textarea>
+        </template>
+        <template v-else-if="node.type === 'select'">
+            <select class="glass-input w-full p-2" :style="innerStyle" v-model="node.props.value">
+                <option v-for="opt in node.props.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+        </template>
+        <template v-else-if="node.type === 'radioGroup'">
+            <div class="flex flex-col gap-2" :style="innerStyle">
+                <label v-for="opt in node.props.options" :key="opt.value" class="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-300">
+                    <input type="radio" :name="node.id" :value="opt.value" v-model="node.props.value" class="text-blue-600 focus:ring-blue-500" />
+                    <span>{{ opt.label }}</span>
+                </label>
+            </div>
         </template>
         <template v-else-if="node.type === 'checkbox'">
             <label class="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-300" :style="innerStyle">
-                <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300" />
+                <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300" v-model="node.props.checked" />
                 <span>{{ node.props.label }}</span>
             </label>
         </template>
         <template v-else-if="node.type === 'switch'">
             <label class="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-300" :style="innerStyle">
-                <div class="w-10 h-6 bg-gray-200/80 dark:bg-gray-600/80 backdrop-blur-sm rounded-full relative transition-colors hover:bg-gray-300/80 border border-gray-300/50">
-                    <div class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 shadow-sm"></div>
+                <div 
+                    class="w-10 h-6 backdrop-blur-sm rounded-full relative transition-colors border border-gray-300/50"
+                    :class="node.props.checked ? 'bg-blue-500' : 'bg-gray-200/80 dark:bg-gray-600/80'"
+                >
+                    <input type="checkbox" class="hidden" v-model="node.props.checked" />
+                    <div 
+                        class="w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all"
+                        :class="node.props.checked ? 'left-5' : 'left-1'"
+                    ></div>
                 </div>
                 <span>{{ node.props.label }}</span>
             </label>
+        </template>
+        <template v-else-if="node.type === 'slider'">
+            <div class="w-full" :style="innerStyle">
+                <input type="range" class="w-full accent-blue-600" v-model.number="node.props.value" />
+                <div class="text-xs text-gray-500 text-right">{{ node.props.value }}</div>
+            </div>
+        </template>
+        <template v-else-if="node.type === 'datePicker'">
+            <input type="date" class="glass-input w-full p-2" :style="innerStyle" v-model="node.props.value" />
+        </template>
+        <template v-else-if="node.type === 'timePicker'">
+            <input type="time" class="glass-input w-full p-2" :style="innerStyle" v-model="node.props.value" />
         </template>
         <div v-else class="p-2 border border-gray-200/50 bg-white/30 backdrop-blur-sm rounded text-sm text-gray-500" :style="innerStyle">
             {{ node.type }} ({{ node.props.label || node.props.text }})

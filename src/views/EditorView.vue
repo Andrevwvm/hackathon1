@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ComponentPalette from '../components/editor/ComponentPalette.vue';
 import EditorCanvas from '../components/editor/EditorCanvas.vue';
@@ -10,11 +10,19 @@ import { useTheme } from '../composables/useTheme';
 const { 
     isPreview, togglePreview, generateShareUrl, loadFromCompressed, 
     selectedNodeId, exportJson, importJson, clearScreen,
-    pages, activePageId, addPage, deletePage
+    pages, activePageId, addPage, deletePage,
+    nextPage, prevPage, navigateToPage
 } = useScreen();
 const { isDark, toggleTheme, initTheme } = useTheme();
 const route = useRoute();
 const showClearConfirm = ref(false);
+
+const isFirstPage = computed(() => pages.value.findIndex(p => p.id === activePageId.value) === 0);
+const isLastPage = computed(() => pages.value.findIndex(p => p.id === activePageId.value) === pages.value.length - 1);
+
+const onSubmit = () => {
+    alert('Form Submitted Successfully!');
+};
 
 const copyShareLink = () => {
   const url = generateShareUrl();
@@ -126,7 +134,7 @@ onMounted(() => {
 
       <!-- Canvas Area -->
       <div class="flex-1 h-full overflow-hidden relative rounded-2xl flex flex-col gap-4">
-        <!-- Pages Bar -->
+        <!-- Pages Bar (Editor Mode) -->
         <div v-if="!isPreview" class="glass-panel p-2 flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
             <div 
                 v-for="page in pages" 
@@ -158,8 +166,66 @@ onMounted(() => {
             </button>
         </div>
 
-        <div class="flex-1 overflow-hidden relative rounded-2xl">
-            <EditorCanvas />
+        <!-- Preview Top Navigation (Steps) -->
+        <div v-if="isPreview" class="glass-panel p-4 flex items-center justify-center gap-2 flex-shrink-0 z-10 overflow-x-auto">
+             <div v-for="(page, index) in pages" :key="page.id" class="flex items-center">
+                <div 
+                    @click="navigateToPage(page.id)"
+                    class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer transition-all duration-300"
+                    :class="activePageId === page.id ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-white/10 text-gray-500 dark:text-gray-400 hover:bg-white/20'"
+                >
+                    <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold" :class="activePageId === page.id ? 'bg-white text-blue-600' : 'bg-gray-400/30 text-gray-300'">{{ index + 1 }}</span>
+                    <span class="font-medium whitespace-nowrap">{{ page.title }}</span>
+                </div>
+                <div v-if="index < pages.length - 1" class="w-8 h-0.5 bg-gray-300/30 mx-2"></div>
+             </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="flex-1 overflow-hidden relative rounded-2xl flex flex-col" :class="isPreview ? 'bg-white/5 dark:bg-black/5 backdrop-blur-sm border border-white/10' : ''">
+            <!-- Scrollable Canvas -->
+            <div class="flex-1 overflow-y-auto scrollbar-hide p-4 relative">
+                <div class="min-h-full flex flex-col justify-start max-w-5xl mx-auto transition-all duration-500" :class="isPreview ? 'py-8' : ''">
+                    <EditorCanvas />
+                </div>
+            </div>
+
+            <!-- Preview Bottom Navigation -->
+            <div v-if="isPreview" class="p-4 border-t border-white/10 flex items-center justify-between bg-white/40 dark:bg-black/40 backdrop-blur-md z-10">
+                 <button 
+                    v-if="!isFirstPage"
+                    @click="prevPage"
+                    class="px-6 py-2.5 rounded-xl font-medium text-gray-700 dark:text-white bg-white/50 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 transition-all flex items-center gap-2"
+                 >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    Back
+                 </button>
+                 <div v-else></div> <!-- Spacer -->
+
+                 <button 
+                    v-if="!isLastPage"
+                    @click="nextPage"
+                    class="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2"
+                 >
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                 </button>
+
+                 <button 
+                    v-if="isLastPage"
+                    @click="onSubmit"
+                    class="px-6 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/30 transition-all flex items-center gap-2"
+                 >
+                    Submit
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                 </button>
+            </div>
         </div>
       </div>
 

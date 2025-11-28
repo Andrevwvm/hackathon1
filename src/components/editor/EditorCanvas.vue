@@ -18,16 +18,25 @@ const onChange = (evt: any) => {
 </script>
 
 <template>
-  <div class="h-full bg-gray-100 dark:bg-gray-900 overflow-auto p-8 transition-all duration-300" @click.self="selectNode(null)">
+  <div 
+    class="transition-all duration-300" 
+    :class="[
+        isPreview ? 'w-full' : 'h-full bg-transparent overflow-auto p-8'
+    ]"
+    @click.self="selectNode(null)"
+  >
     <div 
-        class="min-h-[800px] bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8 mx-auto max-w-5xl relative transition-all duration-500 ease-in-out"
-        :class="isPreview ? 'scale-100 opacity-100' : ''"
+        class="mx-auto max-w-5xl relative transition-all duration-500 ease-in-out glass-panel p-8 min-h-[800px]"
+        :class="[
+            isPreview ? 'scale-100 opacity-100' : 'shadow-lg'
+        ]"
     >
         <draggable
             v-model="screen"
             group="components"
             item-key="id"
-            class="min-h-[200px] h-full flex flex-wrap content-start items-start"
+            class="flex flex-wrap content-start items-start"
+            :class="isPreview ? 'min-h-[200px]' : 'min-h-[800px] h-full'"
             ghost-class="ghost"
             :disabled="isPreview"
             :animation="200"
